@@ -32,12 +32,12 @@ def exec_command(cmd, config, host):
     client.set_missing_host_key_policy(WarningPolicy)
     hostconfig = config.lookup(host)
     client.connect(hostconfig.get('hostname'),
-                    int(hostconfig.get('port', 22)),
-                    username=hostconfig.get('user'))
+                   int(hostconfig.get('port', 22)),
+                   username=hostconfig.get('user'))
     stdin, stdout, stderr = client.exec_command(cmd)
     for i, line in enumerate(stdout):
         line = line.rstrip()
-        print("{0}: {1}".format(i, line))
+        print("{0}: {1}".format(host, line))
     client.close()
 
 
