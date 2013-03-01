@@ -2,35 +2,35 @@
 # -*- coding: utf-8 -*-
 
 import os
-from pypsh import __version__
+import pypsh
 from distutils.core import setup
 
 
-if os.path.isfile('README.md'):
-    readme = open('README.md').read()
+if os.path.isfile('README.rst'):
+    readme = open('README.rst').read()
 else:
     readme = ''
 
 
 setup(
     name="pypsh",
-    version=__version__,
-    author="Mathias Fußenegger",
+    version=pypsh.__version__,
+    author=pypsh.__author__,
     author_email="pip@zignar.net",
     url="https://github.com/mfussenegger/pypsh",
-    license="MIT",
-    description="remotely execute commands in parallel with ssh on\
-    hostnames that match a regex.",
+    license=pypsh.__license__,
+    description=pypsh.__doc__.strip(),
     long_description=readme,
     platforms=['any'],
     packages=['pypsh'],
     install_requires=[
         'argh',
         'paramiko',
+        'termcolor',
     ],
     entry_points={
         'console_scripts': [
-            'pypsh = pypsh:main',
+            'pypsh = pypsh.main:main',
         ],
     },
     classifiers=[
