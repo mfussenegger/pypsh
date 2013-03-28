@@ -55,7 +55,7 @@ class SSHExecutor(multiprocessing.Process):
 
 
 @command
-def pypsh(hostregex, cmd):
+def pypsh(hostregex, cmd, serial=False):
     config = SSHConfig()
     config.parse(open(os.path.expanduser('~/.ssh/config')))
     try:
@@ -85,6 +85,8 @@ def pypsh(hostregex, cmd):
     for host in hosts:
         p = SSHExecutor(host, cmd, config.lookup(host))
         p.start()
+        if serial:
+            p.join()
         processes.append(p)
 
     while multiprocessing.active_children():

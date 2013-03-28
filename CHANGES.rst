@@ -5,6 +5,12 @@ Changes for pypsh
 Unreleased
 ==========
 
+2013-03-28: 0.3.0
+=================
+
+ - **feature**: added --serial (-s) parameter to run commands serial instead of
+   parallel.
+
 2013-03-01: 0.2.0
 =================
 
