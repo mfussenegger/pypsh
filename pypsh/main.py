@@ -167,6 +167,9 @@ def cmd(hostregex, cmd, serial=False):
 @command
 def copy(source, hostregex, destination, serial=False):
     hosts = get_hosts(hostregex)
+    if not os.path.isfile(source):
+        print(colored('>>> Source {} does not exist'.format(source), 'red'))
+        sys.exit(1)
     print('>>> Starting to copy the file:')
     print('')
 
