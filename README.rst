@@ -3,24 +3,30 @@
 Parallel SSH with Regex
 =======================
 
-Usage::
+To execute a command on a group of hosts matching a given regular expression::
 
-    pypsh hostregex cmd
+    pypsh cmd <hostregex> <cmd-to-execute>
 
 E.g.::
 
-    pypsh "role\d+\.customer\.your\.domain" "uptime"
+    pypsh cmd "role\d+\.customer\.your\.domain" "uptime"
 
-This matches every host in the `known_hosts` file against the regex and
-executes the command.
+Or to copy a given file to a group of hosts::
+
+    pypsh copy /tmp/here/myfile.txt "my\.domains\d+\.com" /tmp/remote/file.txt
+
+
+
+The command or file copy operation will be executed on any host that is in the
+`known_hosts` file and matches the given regular expression.
 
 Installation
 ============
 
 ``Pypsh`` can be installed using ``pip``::
 
-    pip install pypsh 
-    
+    pip install pypsh
+
 Development
 ===========
 
@@ -39,4 +45,4 @@ branch::
 
 But usually it is sufficient to invoke it like this::
 
-    python pypsh/main.py
+    python pypsh/main.py {cmd,copy} ...
