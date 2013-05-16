@@ -5,6 +5,9 @@ Changes for pypsh
 Unreleased
 ==========
 
+2013-05-16: 0.4.0
+=================
+
  - **feature**: added new `copy` subcommand. Therefore the `cmd` command has
    to be specified explicitly and is no longer the default command.
 
