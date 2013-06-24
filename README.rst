@@ -15,7 +15,9 @@ Or to copy a given file to a group of hosts::
 
     pypsh copy /tmp/here/myfile.txt "my\.domains\d+\.com" /tmp/remote/file.txt
 
+To list the hosts that would match use the following command::
 
+    pypsh show <hostregex>
 
 The command or file copy operation will be executed on any host that is in the
 `known_hosts` file and matches the given regular expression.

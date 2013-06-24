@@ -5,6 +5,11 @@ Changes for pypsh
 Unreleased
 ==========
 
+2013-06-24: 0.5.0
+=================
+
+ - **feature**: added new `show` subcommand.
+
 2013-05-16: 0.4.0
 =================
 
