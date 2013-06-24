@@ -125,7 +125,7 @@ def print_result(processes):
     num_ok = sum([1 for p in processes if p.exitcode == 0])
     failures = sorted([p for p in processes if p.exitcode != 0],
                       key=lambda x: x.host)
-    print('>>> {} successful invokations.'.format(colored(num_ok, 'green')))
+    print('>>> {} successful invocations.'.format(colored(num_ok, 'green')))
     print('>>> {} failures:'.format(colored(len(failures), 'red')))
     for p in failures:
         print('\t{}'.format(p.host))
@@ -180,9 +180,14 @@ def copy(source, hostregex, destination, serial=False):
     print_result(processes)
 
 
+@command
+def show(hostregex):
+    get_hosts(hostregex)
+
+
 def main():
     p = ArghParser()
-    p.add_commands([cmd, copy])
+    p.add_commands([cmd, copy, show])
     p.dispatch()
 
 
