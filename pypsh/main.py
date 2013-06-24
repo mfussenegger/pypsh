@@ -180,9 +180,14 @@ def copy(source, hostregex, destination, serial=False):
     print_result(processes)
 
 
+@command
+def show(hostregex):
+    get_hosts(hostregex)
+
+
 def main():
     p = ArghParser()
-    p.add_commands([cmd, copy])
+    p.add_commands([cmd, copy, show])
     p.dispatch()
 
 
