@@ -5,6 +5,7 @@ import sys
 import os
 import re
 import multiprocessing
+from numbers import Number
 from time import sleep
 from functools import partial
 from paramiko import (util, SSHConfig, SSHClient, WarningPolicy,
@@ -131,16 +132,23 @@ def print_result(processes):
         print('\t{}'.format(p.host))
 
 
-def start_procs(serial, hosts, starter_func):
+def start_procs(serial, hosts, starter_func, wait=0.0):
     config = SSHConfig()
     config.parse(open(os.path.expanduser('~/.ssh/config')))
+
+    try:
+        wait = float(wait)
+    except ValueError:
+        pass
 
     processes = []
     for host in hosts:
         process = starter_func(host, config.lookup(host))
         process.start()
-        if serial:
+        if serial or wait > 0.0:
             process.join()
+            if isinstance(wait, Number):
+                sleep(wait)
         processes.append(process)
 
     while multiprocessing.active_children():
@@ -154,13 +162,13 @@ def start_procs(serial, hosts, starter_func):
 
 
 @command
-def cmd(hostregex, cmd, serial=False):
+def cmd(hostregex, cmd, serial=False, wait=0.0):
     hosts = get_hosts(hostregex)
     print('>>> Starting to execute the command(s):')
     print('')
 
     cmd_executer = partial(SSHExecutor, cmd=cmd)
-    processes = start_procs(serial, hosts, cmd_executer)
+    processes = start_procs(serial, hosts, cmd_executer, wait=wait)
     print_result(processes)
 
 
