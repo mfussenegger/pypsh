@@ -5,6 +5,11 @@ Changes for pypsh
 Unreleased
 ==========
 
+2013-06-24: 0.6.0
+=================
+
+ - **feature**: added new `--wait` parameter to the `cmd` subcommand.
+
 2013-06-24: 0.5.0
 =================
 
