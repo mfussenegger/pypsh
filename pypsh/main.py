@@ -125,7 +125,7 @@ def print_result(processes):
     num_ok = sum([1 for p in processes if p.exitcode == 0])
     failures = sorted([p for p in processes if p.exitcode != 0],
                       key=lambda x: x.host)
-    print('>>> {} successful invokations.'.format(colored(num_ok, 'green')))
+    print('>>> {} successful invocations.'.format(colored(num_ok, 'green')))
     print('>>> {} failures:'.format(colored(len(failures), 'red')))
     for p in failures:
         print('\t{}'.format(p.host))
