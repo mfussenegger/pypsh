@@ -3,7 +3,7 @@
 
 import os
 import pypsh
-from distutils.core import setup
+from setuptools import setup
 
 
 if os.path.isfile('README.rst'):
