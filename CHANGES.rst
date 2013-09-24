@@ -5,6 +5,27 @@ Changes for pypsh
 Unreleased
 ==========
 
+ - **breaking change**
+   Changed the commandline interface again. The `hostregex` is now always the
+   first (required) parameter. In addition the `cmd` subcommand is now again
+   optional and pypsh also supports to execute commands that are read from
+   stdin.
+
+   So the following invokations are possible::
+
+    pypsh "myhosts[0-9]" "uptime"
+    echo "uptime" | pypsh "myhosts[0-9]"
+    pypsh "myhosts[0-9]" cmd "uptime"
+    pypsh "myhosts[0-9]" copy /tmp/source /tmp/destination
+
+   The `wait` and `serial` parameters have been merged into `interval`
+   If the interval is zero the commands will be executed in parallel, if it's
+   greater than zero the command/copy process will be serial with a sleep of
+   `interval` after each host.
+
+   In addition, the `show` subcommand has been removed. Simply use `uptime` or
+   some other harmless command to show which hosts matched.
+
 2013-06-24: 0.6.0
 =================
 
@@ -45,5 +66,5 @@ Unreleased
 
 2013-02-12: 0.1.0
 =================
- 
+
  - initial version

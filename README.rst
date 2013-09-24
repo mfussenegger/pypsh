@@ -3,6 +3,11 @@
 Parallel SSH with Regex
 =======================
 
+pypsh is a simple commandline tool to execute a command in parallel on multiple
+hosts.
+
+Under the hoods it uses `ssh` via the `paramiko` python library.
+
 Why `pypsh` instead of dsh?
 ===========================
 
@@ -24,41 +29,43 @@ Command Execution
 
 To execute a command on a group of hosts matching a given regular expression::
 
-    pypsh cmd <hostregex> <cmd-to-execute>
+    pypsh <hostregex> <cmd-to-execute>
 
 E.g.::
 
-    pypsh cmd "role\d+\.customer\.your\.domain" "uptime"
+    pypsh "role\d+\.customer\.your\.domain" "uptime"
 
 Instead of executing the commands in parallel it is also possible to execute
 the commands one after another. To do so use::
 
-    pypsh cmd -s "role\d+\.customer\.your\.domain" "uptime"
+    pypsh "role\d+\.customer\.your\.domain" --interval 0.1 cmd "uptime"
 
 Or to wait between the commands (which might be useful when restarting services
 like elasticsearch that are part of a cluster)::
 
-    pypsh cmd -w 60 "role\d+\.customer\.your\.domain" "uptime"
+    pypsh "role\d+\.customer\.your\.domain" -i 60 cmd "uptime"
 
-List matching hosts
-===================
+`pypsh` can also read from stdin. So it is possible to pipe command into it::
 
-To list the hosts that would match use the following command::
+    echo "uptime" | pypsh "myhosts[0-9]"
 
-    pypsh show <hostregex>
+.. note::
+
+    Piping is only supported if pypsh itself only received one argument.
+    Therefore it is not possible to couple it with other parameters like
+    `interval`
 
 Copy file to multiple hosts
 ===========================
 
 To copy a given file to a group of hosts::
 
-    pypsh copy /tmp/here/myfile.txt "my\.domains\d+\.com" /tmp/remote/file.txt
-
+    pypsh "my\.domains\d+\.com" copy /tmp/here/myfile.txt /tmp/remote/file.txt
 
 Installation
 ============
 
-``Pypsh`` can be installed using ``pip``::
+``pypsh`` can be installed using ``pip``::
 
     pip install pypsh
 
@@ -80,4 +87,4 @@ branch::
 
 But usually it is sufficient to invoke it like this::
 
-    python pypsh/main.py {cmd,copy} ...
+    python pypsh/main.py ...

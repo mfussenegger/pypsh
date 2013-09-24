@@ -24,7 +24,6 @@ setup(
     platforms=['any'],
     packages=['pypsh'],
     install_requires=[
-        'argh',
         'paramiko',
         'termcolor',
     ],

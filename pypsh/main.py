@@ -5,13 +5,13 @@ import sys
 import os
 import re
 import multiprocessing
-from numbers import Number
+import select
+from argparse import ArgumentParser
 from time import sleep
 from functools import partial
 from paramiko import (util, SSHConfig, SSHClient, WarningPolicy,
                       BadHostKeyException, SSHException,
                       AuthenticationException as AuthException)
-from argh import ArghParser, command
 from termcolor import colored
 
 
@@ -96,8 +96,9 @@ class CopyExecutor(Executor):
 
 def get_hosts(hostregex):
     """return all hosts that are in the known_hosts file and match the given
-    regex
+    regex.
 
+    Will return an empty list if no hosts matched.
     """
     try:
         keys = util.load_host_keys(os.path.expanduser('~/.ssh/known_hosts'))
@@ -132,23 +133,17 @@ def print_result(processes):
         print('\t{}'.format(p.host))
 
 
-def start_procs(serial, hosts, starter_func, wait=0.0):
+def start_procs(interval, hosts, starter_func):
     config = SSHConfig()
     config.parse(open(os.path.expanduser('~/.ssh/config')))
-
-    try:
-        wait = float(wait)
-    except ValueError:
-        pass
 
     processes = []
     for host in hosts:
         process = starter_func(host, config.lookup(host))
         process.start()
-        if serial or wait > 0.0:
+        if interval > 0.0:
             process.join()
-            if isinstance(wait, Number):
-                sleep(wait)
+            sleep(interval)
         processes.append(process)
 
     while multiprocessing.active_children():
@@ -161,20 +156,15 @@ def start_procs(serial, hosts, starter_func, wait=0.0):
     return processes
 
 
-@command
-def cmd(hostregex, cmd, serial=False, wait=0.0):
-    hosts = get_hosts(hostregex)
+def cmd(hosts, cmd, interval=0.0):
     print('>>> Starting to execute the command(s):')
     print('')
-
     cmd_executer = partial(SSHExecutor, cmd=cmd)
-    processes = start_procs(serial, hosts, cmd_executer, wait=wait)
+    processes = start_procs(interval, hosts, cmd_executer)
     print_result(processes)
 
 
-@command
-def copy(source, hostregex, destination, serial=False):
-    hosts = get_hosts(hostregex)
+def copy(source, hosts, destination, interval=0.0):
     if not os.path.isfile(source):
         print(colored('>>> Source {} does not exist'.format(source), 'red'))
         sys.exit(1)
@@ -184,19 +174,66 @@ def copy(source, hostregex, destination, serial=False):
     cmd_executer = partial(CopyExecutor,
                            source=source,
                            destination=destination)
-    processes = start_procs(serial, hosts, cmd_executer)
+    processes = start_procs(interval, hosts, cmd_executer)
     print_result(processes)
 
 
-@command
-def show(hostregex):
-    get_hosts(hostregex)
+def dispatch(args):
+    hosts = get_hosts(args.hostregex)
+    if 'command' in args:
+        cmd(hosts, args.command, args.interval)
+    else:
+        copy(args.source, hosts, args.destination, args.interval)
+
+
+def create_parser():
+    parser = ArgumentParser(description='parallel ssh command execution')
+    parser.add_argument('hostregex', type=str,
+                        help='regular expression to match the hostnames')
+    parser.add_argument(
+        '-i', '--interval',
+        type=float,
+        default=0.0,
+        help=('time to wait between command execution on the different hosts.'
+              '0 means no wait time and everything is executed in parallel'))
+    subparsers = parser.add_subparsers(help='sub-command help')
+
+    cmd_subcommand = subparsers.add_parser(
+        'cmd', help='execute a command on multiple hosts'
+    )
+    cmd_subcommand.set_defaults(func=dispatch)
+    cmd_subcommand.add_argument('command', type=str, help='command to execute')
+
+    copy_subcommand = subparsers.add_parser(
+        'copy', help='copy a file from the local machine to multiple hosts'
+    )
+    copy_subcommand.set_defaults(func=dispatch)
+    copy_subcommand.add_argument('source', type=str,
+                                 help='path to the file on the local machine')
+    copy_subcommand.add_argument('destination', type=str,
+                                 help='path to the file on the remote hosts')
+    return parser
 
 
 def main():
-    p = ArghParser()
-    p.add_commands([cmd, copy, show])
-    p.dispatch()
+    if len(sys.argv) == 2:
+        hosts = get_hosts(sys.argv[1])
+        if hosts:
+            while sys.stdin in select.select([sys.stdin], [], [], 0)[0]:
+                line = sys.stdin.readline()
+                if line:
+                    cmd(hosts, line)
+                else:
+                    sys.exit(0)
+    elif len(sys.argv) == 3:
+        # "pypsh <hostregex> <command>" should work too
+        hosts = get_hosts(sys.argv[1])
+        if hosts and sys.argv[2] != 'help':
+            cmd(hosts, sys.argv[2])
+            sys.exit(0)
+    parser = create_parser()
+    args = parser.parse_args()
+    args.func(args)
 
 
 if __name__ == '__main__':
