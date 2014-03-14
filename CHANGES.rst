@@ -5,6 +5,11 @@ Changes for pypsh
 Unreleased
 ==========
 
+2014-03-14: 0.7.1
+=================
+
+ - **bugfix**: adopt paramiko missing_host_key usage to changed API
+
 2014-03-14: 0.7.0
 =================
 
