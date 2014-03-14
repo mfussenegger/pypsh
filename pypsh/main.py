@@ -44,7 +44,7 @@ class Executor(multiprocessing.Process):
         exitcode = 0
         client = SSHClient()
         client.load_system_host_keys()
-        client.set_missing_host_key_policy(WarningPolicy)
+        client.set_missing_host_key_policy(WarningPolicy())
         try:
             client.connect(self.config.get('hostname'),
                            int(self.config.get('port', 22)),
@@ -61,6 +61,9 @@ class Executor(multiprocessing.Process):
             print(colored('{0}: {1}'.format(self.host, str(e)), 'red'))
             exitcode = 1
         except (BadHostKeyException, AuthException, SSHException) as e:
+            print(colored('{0}: {1}'.format(self.host, e.message)), 'red')
+            exitcode = 1
+        except Exception as e:
             print(colored('{0}: {1}'.format(self.host, e.message)), 'red')
             exitcode = 1
         finally:
