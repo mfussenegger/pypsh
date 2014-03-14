@@ -5,6 +5,9 @@ Changes for pypsh
 Unreleased
 ==========
 
+2014-03-14: 0.7.0
+=================
+
  - **breaking change**
    Changed the commandline interface again. The `hostregex` is now always the
    first (required) parameter. In addition the `cmd` subcommand is now again
