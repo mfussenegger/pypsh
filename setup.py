@@ -36,6 +36,7 @@ setup(
         'Development Status :: 4 - Beta',
         'Programming Language :: Python',
         'Programming Language :: Python :: 2.7',
+        'Programming Language :: Python :: 3.3',
         'Intended Audience :: System Administrators',
         'License :: OSI Approved :: MIT License',
         'Topic :: System :: Networking',
