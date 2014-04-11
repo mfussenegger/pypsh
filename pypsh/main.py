@@ -6,6 +6,7 @@ import os
 import re
 import multiprocessing
 import select
+from threading import Thread
 from argparse import ArgumentParser
 from time import sleep
 from functools import partial
@@ -13,6 +14,27 @@ from paramiko import (util, SSHConfig, SSHClient, WarningPolicy,
                       BadHostKeyException, SSHException,
                       AuthenticationException as AuthException)
 from termcolor import colored
+
+
+class Printer(object):
+
+    def __init__(self, host, stdout, stderr):
+        def printer(stream, color):
+            hostpart = colored("[{0}]".format(host), color) + ": "
+            for line in stream:
+                line = line.rstrip()
+                print(hostpart + line)
+        self.printers = [
+            Thread(target=printer, args=(stdout, 'green')),
+            Thread(target=printer, args=(stderr, 'red'))
+        ]
+
+    def loop(self):
+        for p in self.printers:
+            p.daemon = True
+            p.start()
+        for p in self.printers:
+            p.join()
 
 
 class Executor(multiprocessing.Process):
@@ -37,7 +59,7 @@ class Executor(multiprocessing.Process):
         """overwrite this method to implement specific functionality
 
         this method has to return a tuple with 3 iterables.
-        (stdin, stdout, stderr)
+        (stdout, stderr, channel)
         """
 
     def _exec(self):
@@ -49,14 +71,10 @@ class Executor(multiprocessing.Process):
             client.connect(self.config.get('hostname'),
                            int(self.config.get('port', 22)),
                            username=self.config.get('user'))
-            stdin, stdout, stderr = self.exec_command(client)
-            for i, line in enumerate(stdout):
-                line = line.rstrip()
-                print("{0}: {1}".format(self.host, line))
-            for i, line in enumerate(stderr):
-                line = line.rstrip()
-                print(colored("{0}: {1}".format(self.host, line), 'red'))
-                exitcode = 1
+            stdout, stderr, channel = self.exec_command(client)
+            Printer(self.host, stdout, stderr).loop()
+            if channel:
+                exitcode = channel.recv_exit_status()
         except IOError as e:
             print(colored('{0}: {1}'.format(self.host, str(e)), 'red'))
             exitcode = 1
@@ -74,12 +92,23 @@ class Executor(multiprocessing.Process):
 class SSHExecutor(Executor):
     """ execute a simple command via ssh """
 
-    def __init__(self, host, config, cmd):
+    def __init__(self, host, config, cmd, pty):
         super(SSHExecutor, self).__init__(host, config)
         self.cmd = cmd
+        self.get_pty = pty
+        self.timeout = None
 
     def exec_command(self, client):
-        return client.exec_command(self.cmd)
+        chan = client.get_transport().open_session()
+        if self.get_pty:
+            chan.get_pty()
+        chan.settimeout(self.timeout)
+        chan.exec_command(self.cmd)
+        stdin = chan.makefile('wb', -1)
+        stdout = chan.makefile('r', -1)
+        stderr = chan.makefile_stderr('r', -1)
+        stdin.close()
+        return stdout, stderr, chan
 
 
 class CopyExecutor(Executor):
@@ -94,7 +123,7 @@ class CopyExecutor(Executor):
         sftp = client.open_sftp()
         sftp.put(self.source, self.destination)
         sftp.close()
-        return ([], ['Copied to {}'.format(self.host)], [])
+        return (['Copied to {}'.format(self.host)], [], None)
 
 
 def get_hosts(hostregex):
@@ -111,7 +140,7 @@ def get_hosts(hostregex):
     hosts = []
     try:
         rex = re.compile(hostregex)
-    except:
+    except re.error:
         sys.exit(colored('Invalid regular expression!', 'red', attrs=['bold']))
     for key in keys:
         if rex.match(key):
@@ -159,10 +188,10 @@ def start_procs(interval, hosts, starter_func):
     return processes
 
 
-def cmd(hosts, cmd, interval=0.0):
+def cmd(hosts, cmd, interval=0.0, pty=False):
     print('>>> Starting to execute the command(s):')
     print('')
-    cmd_executer = partial(SSHExecutor, cmd=cmd)
+    cmd_executer = partial(SSHExecutor, cmd=cmd, pty=pty)
     processes = start_procs(interval, hosts, cmd_executer)
     print_result(processes)
 
@@ -206,6 +235,8 @@ def create_parser():
     )
     cmd_subcommand.set_defaults(func=dispatch)
     cmd_subcommand.add_argument('command', type=str, help='command to execute')
+    cmd_subcommand.add_argument('--pty', action='count',
+                                help='attach pty', default=False)
 
     copy_subcommand = subparsers.add_parser(
         'copy', help='copy a file from the local machine to multiple hosts'
@@ -225,14 +256,14 @@ def main():
             while sys.stdin in select.select([sys.stdin], [], [], 0)[0]:
                 line = sys.stdin.readline()
                 if line:
-                    cmd(hosts, line)
+                    cmd(hosts, line, False)
                 else:
                     sys.exit(0)
     elif len(sys.argv) == 3:
         # "pypsh <hostregex> <command>" should work too
         hosts = get_hosts(sys.argv[1])
         if hosts and sys.argv[2] != 'help':
-            cmd(hosts, sys.argv[2])
+            cmd(hosts, sys.argv[2], False)
             sys.exit(0)
     parser = create_parser()
     args = parser.parse_args()
