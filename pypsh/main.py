@@ -28,6 +28,8 @@ class Printer(object):
             Thread(target=printer, args=(stdout, 'green')),
             Thread(target=printer, args=(stderr, 'red'))
         ]
+        self.stdout = stdout
+        self.stderr = stderr
 
     def loop(self):
         for p in self.printers:
@@ -35,6 +37,8 @@ class Printer(object):
             p.start()
         for p in self.printers:
             p.join()
+        self.stdout.close()
+        self.stderr.close()
 
 
 class Executor(multiprocessing.Process):
