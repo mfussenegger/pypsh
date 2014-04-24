@@ -37,8 +37,10 @@ class Printer(object):
             p.start()
         for p in self.printers:
             p.join()
-        self.stdout.close()
-        self.stderr.close()
+        if hasattr(self.stdout, 'close'):
+            self.stdout.close()
+        if hasattr(self.stderr, 'close'):
+            self.stderr.close()
 
 
 class Executor(multiprocessing.Process):
