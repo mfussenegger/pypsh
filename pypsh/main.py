@@ -130,6 +130,9 @@ class CopyExecutor(Executor):
         return (['Copied to {}'.format(self.host)], [], None)
 
 
+RE_HOST_PORT = re.compile('\[(.*)\]:\d+.*')
+
+
 def get_hosts(hostregex):
     """return all hosts that are in the known_hosts file and match the given
     regex.
@@ -147,6 +150,9 @@ def get_hosts(hostregex):
     except re.error:
         sys.exit(colored('Invalid regular expression!', 'red', attrs=['bold']))
     for key in keys:
+        custom_port_match = RE_HOST_PORT.match(key)
+        if custom_port_match:
+            key = custom_port_match.group(1)
         if rex.match(key):
             hosts.append(key)
 
