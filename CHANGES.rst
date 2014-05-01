@@ -5,6 +5,15 @@ Changes for pypsh
 Unreleased
 ==========
 
+2014-05-01: 0.7.2
+=================
+
+ - fixed matching of hosts that have a custom port configured.
+
+ - added the `--pty` option.
+
+ - stdout or stderr buffers filling up should no longer cause pypsh to get stuck
+
 2014-03-14: 0.7.1
 =================
 
