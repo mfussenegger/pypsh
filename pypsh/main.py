@@ -6,6 +6,8 @@ import os
 import re
 import multiprocessing
 import select
+import socket
+from collections import defaultdict
 from threading import Thread
 from argparse import ArgumentParser
 from time import sleep
@@ -230,6 +232,74 @@ def copy(source, hosts, destination, interval=0.0):
     print_result(processes)
 
 
+def interactive(args):
+    hosts = get_hosts(args.hostregex)
+    config = SSHConfig()
+    config.parse(open(os.path.expanduser('~/.ssh/config')))
+
+    clients = []
+    transports = []
+    channels = {}
+    for host in hosts:
+        client = SSHClient()
+        client.load_system_host_keys()
+        client.set_missing_host_key_policy(WarningPolicy())
+        hostconfig = config.lookup(host)
+        client.connect(hostconfig.get('hostname'),
+                       int(hostconfig.get('port', 22)),
+                       username=hostconfig.get('user'))
+        clients.append(client)
+        transport = client.get_transport()
+        transports.append(transport)
+        chan = transport.open_session()
+        if args.pty:
+            chan.get_pty()
+        chan.settimeout(0.0)
+        chan.invoke_shell()
+        channels[chan] = host
+
+    channels_stdin = list(channels.keys()) + [sys.stdin]
+    print('Connections established.. waiting for input: ')
+    lines = defaultdict(list)
+    while True:
+        try:
+            sys.stdout.write(colored('> ', 'red', attrs=['bold']))
+            sys.stdout.flush()
+            r, w, e = select.select(channels_stdin, [], [])
+            if sys.stdin in r:
+                line = sys.stdin.readline()
+                if line:
+                    for i, chan in enumerate(channels):
+                        try:
+                            chan.send(line)
+                        except socket.timeout:
+                            print("couldn't send to channel {0}".format(i))
+            else:
+                for chan in channels:
+                    if chan in r:
+                        try:
+                            while True:
+                                x = chan.recv(1024).decode('utf-8')
+                                lines[channels[chan]].append(x)
+                                if len(x) == 0:
+                                    break
+                        except socket.timeout:
+                            pass
+                for host in lines:
+                    print(colored(host, 'green'))
+                    for c in lines[host]:
+                        sys.stdout.write(c)
+                    sys.stdout.flush()
+                lines.clear()
+        except KeyboardInterrupt:
+            for chan in channels:
+                chan.close()
+            for t in transports:
+                t.close()
+            print('Bye')
+            break
+
+
 def dispatch(args):
     hosts = get_hosts(args.hostregex)
     if 'command' in args:
@@ -266,6 +336,13 @@ def create_parser():
                                  help='path to the file on the local machine')
     copy_subcommand.add_argument('destination', type=str,
                                  help='path to the file on the remote hosts')
+
+    interactive_cmd = subparsers.add_parser(
+        'interactive', help='create an interactive connection to multiple hosts'
+    )
+    interactive_cmd.add_argument(
+        '--pty', action='count', help='attach pty', default=False)
+    interactive_cmd.set_defaults(func=interactive)
     return parser
 
 
@@ -279,7 +356,7 @@ def main():
                     cmd(hosts, line, False)
                 else:
                     sys.exit(0)
-    elif len(sys.argv) == 3:
+    elif len(sys.argv) == 3 and sys.argv[2] != 'interactive':
         # "pypsh <hostregex> <command>" should work too
         hosts = get_hosts(sys.argv[1])
         if hosts and sys.argv[2] != 'help':
