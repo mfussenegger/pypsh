@@ -225,7 +225,7 @@ def copy(source, hosts, destination, interval=0.0):
 def dispatch(args):
     hosts = get_hosts(args.hostregex)
     if 'command' in args:
-        cmd(hosts, args.command, args.interval)
+        cmd(hosts, args.command, args.interval, args.pty)
     else:
         copy(args.source, hosts, args.destination, args.interval)
 
