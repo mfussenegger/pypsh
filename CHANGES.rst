@@ -5,6 +5,8 @@ Changes for pypsh
 Unreleased
 ==========
 
+ - detect hosts from Host entries in `~/.ssh/config`
+
  - fixed support for ``--pty``
 
 2014-05-01: 0.7.2

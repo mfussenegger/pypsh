@@ -135,6 +135,13 @@ class CopyExecutor(Executor):
 RE_HOST_PORT = re.compile('\[(.*)\]:\d+.*')
 
 
+def keys_from_config():
+    with open(os.path.expanduser('~/.ssh/config'), 'r') as f:
+        for line in f:
+            if line.startswith('Host '):
+                yield line[5:].strip()
+
+
 def get_hosts(hostregex):
     """return all hosts that are in the known_hosts file and match the given
     regex.
@@ -151,6 +158,7 @@ def get_hosts(hostregex):
         rex = re.compile(hostregex)
     except re.error:
         sys.exit(colored('Invalid regular expression!', 'red', attrs=['bold']))
+    keys = [key for key in keys] + list(keys_from_config())
     for key in keys:
         custom_port_match = RE_HOST_PORT.match(key)
         if custom_port_match:
