@@ -8,5 +8,5 @@ given regex.
 """
 
 __author__ = 'Mathias Fußenegger'
-__version__ = '0.7.2'
+__version__ = '0.7.3'
 __license__ = 'MIT'
