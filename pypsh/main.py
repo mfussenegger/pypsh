@@ -50,10 +50,11 @@ class Executor(multiprocessing.Process):
     exec_command has to be overwritten in a subclass to do something useful.
     """
 
-    def __init__(self, host, config):
+    def __init__(self, host, config, identity_file):
         super(Executor, self).__init__()
         self.host = host
         self.config = config
+        self.identity_file = identity_file
 
     def stop(self):
         self.terminate()
@@ -76,6 +77,7 @@ class Executor(multiprocessing.Process):
         try:
             client.connect(self.config.get('hostname'),
                            int(self.config.get('port', 22)),
+                           key_filename=self.identity_file,
                            username=self.config.get('user'))
             stdout, stderr, channel = self.exec_command(client)
             Printer(self.host, stdout, stderr).loop()
@@ -98,8 +100,8 @@ class Executor(multiprocessing.Process):
 class SSHExecutor(Executor):
     """ execute a simple command via ssh """
 
-    def __init__(self, host, config, cmd, pty):
-        super(SSHExecutor, self).__init__(host, config)
+    def __init__(self, host, config, cmd, pty, identity_file):
+        super(SSHExecutor, self).__init__(host, config, identity_file)
         self.cmd = cmd
         self.get_pty = pty
         self.timeout = None
@@ -120,8 +122,8 @@ class SSHExecutor(Executor):
 class CopyExecutor(Executor):
     """ copy a file from source to destination via ssh/sftp """
 
-    def __init__(self, host, config, source, destination):
-        super(CopyExecutor, self).__init__(host, config)
+    def __init__(self, host, config, source, destination, identity_file,):
+        super(CopyExecutor, self).__init__(host, config, identity_file)
         self.source = source
         self.destination = destination
 
@@ -208,15 +210,18 @@ def start_procs(interval, hosts, starter_func):
     return processes
 
 
-def cmd(hosts, cmd, interval=0.0, pty=False):
+def cmd(hosts, cmd, interval=0.0, pty=False, identity_file=None):
     print('>>> Starting to execute the command(s):')
     print('')
-    cmd_executer = partial(SSHExecutor, cmd=cmd, pty=pty)
+    cmd_executer = partial(SSHExecutor,
+                           cmd=cmd,
+                           pty=pty,
+                           identity_file=identity_file)
     processes = start_procs(interval, hosts, cmd_executer)
     print_result(processes)
 
 
-def copy(source, hosts, destination, interval=0.0):
+def copy(source, hosts, destination, interval=0.0, identity_file=None):
     if not os.path.isfile(source):
         print(colored('>>> Source {} does not exist'.format(source), 'red'))
         sys.exit(1)
@@ -225,7 +230,8 @@ def copy(source, hosts, destination, interval=0.0):
 
     cmd_executer = partial(CopyExecutor,
                            source=source,
-                           destination=destination)
+                           destination=destination,
+                           identity_file=identity_file)
     processes = start_procs(interval, hosts, cmd_executer)
     print_result(processes)
 
@@ -233,15 +239,16 @@ def copy(source, hosts, destination, interval=0.0):
 def dispatch(args):
     hosts = get_hosts(args.hostregex)
     if 'command' in args:
-        cmd(hosts, args.command, args.interval, args.pty)
+        cmd(hosts, args.command, args.interval, args.pty, args.identity_file)
     else:
-        copy(args.source, hosts, args.destination, args.interval)
+        copy(args.source, hosts, args.destination, args.interval, args.identity_file)
 
 
 def create_parser():
     parser = ArgumentParser(description='parallel ssh command execution')
     parser.add_argument('hostregex', type=str,
                         help='regular expression to match the hostnames')
+    parser.add_argument('--identity-file', type=str, default=None)
     parser.add_argument(
         '-i', '--interval',
         type=float,
