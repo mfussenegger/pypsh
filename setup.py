@@ -1,15 +1,12 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
-import os
 import pypsh
 from setuptools import setup
 
 
-if os.path.isfile('README.rst'):
-    readme = open('README.rst').read()
-else:
-    readme = ''
+with open('README.rst', 'r') as f:
+    readme = f.read()
 
 
 setup(
@@ -38,8 +35,7 @@ setup(
         'Programming Language :: Python :: 2',
         'Programming Language :: Python :: 2.7',
         'Programming Language :: Python :: 3',
-        'Programming Language :: Python :: 3.3',
-        'Programming Language :: Python :: 3.4',
+        'Programming Language :: Python :: 3.5',
         'Programming Language :: Python :: Implementation :: CPython',
         'Intended Audience :: System Administrators',
         'License :: OSI Approved :: MIT License',
