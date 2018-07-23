@@ -1,3 +1,11 @@
+============
+UNMAINTAINED
+============
+
+This project is no longer maintained. I'd advice to use ``ansible`` which can
+be used to invoke ad-hoc commands or have an interactive shell over multiple
+hosts using ``ansible-console``.
+
 
 =======================
 Parallel SSH with Regex
